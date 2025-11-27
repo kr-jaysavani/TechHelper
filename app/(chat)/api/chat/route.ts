@@ -45,6 +45,7 @@ import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 import { google } from "@ai-sdk/google";
+import { webSearch } from "@/lib/ai/tools/web-search";
 
 
 export const maxDuration = 60;
@@ -191,13 +192,15 @@ export async function POST(request: Request) {
             selectedChatModel === "chat-model-reasoning"
               ? []
               : [
-                  "getWeather",
-                  "createDocument",
-                  "updateDocument",
-                  "requestSuggestions",
+                  // "getWeather",
+                  // "createDocument",
+                  // "updateDocument",
+                  // "requestSuggestions",
+                  "webSearch",
                 ],
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: {
+            webSearch,
             getWeather,
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
