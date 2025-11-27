@@ -29,6 +29,7 @@ export const webSearch = tool({
       }
 
       const data = await response.json();
+      console.log("🚀 ~ data:", data)
       
       const results = data.organic?.slice(0, 5).map((result: any) => ({
         title: result.title,

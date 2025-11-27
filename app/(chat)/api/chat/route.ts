@@ -46,6 +46,7 @@ import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 import { google } from "@ai-sdk/google";
 import { webSearch } from "@/lib/ai/tools/web-search";
+import { rag_retrieve } from "@/rag/rag_agent";
 
 
 export const maxDuration = 60;
@@ -180,12 +181,17 @@ export async function POST(request: Request) {
 
     let finalMergedUsage: AppUsage | undefined;
 
+    let sysPrompt = systemPrompt({ selectedChatModel })
+    const msgs = convertToModelMessages(uiMessages)
+    const context = await rag_retrieve(msgs)
+    sysPrompt = sysPrompt + `\n ${context}`
+
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: google("gemini-2.5-flash"),
           // model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: sysPrompt,
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
