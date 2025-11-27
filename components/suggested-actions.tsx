@@ -14,12 +14,29 @@ type SuggestedActionsProps = {
 };
 
 function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
+
   const suggestedActions = [
-    "What are the advantages of using Next.js?",
-    "Write code to demonstrate Dijkstra's algorithm",
-    "Help me write an essay about Silicon Valley",
-    "What is the weather in San Francisco?",
-  ];
+    "Check why my PC is showing 'No Boot Device Found'",
+    "My phone is not charging—what should I check?",
+    "How do I reset my router safely?",
+    "Diagnose why my Wi-Fi router keeps disconnecting",
+    "My monitor is not displaying anything — what do I do?",
+    "Why is my internet speed slow?",
+  // "Help me fix a laptop that won’t turn on",
+  // "Guide me through troubleshooting a computer that’s overheating",
+  // "Explain the meaning of blinking LEDs on my router",
+  // "Help me fix Bluetooth not connecting on Windows",
+  // "Troubleshoot a printer that won’t connect to Wi-Fi",
+  // "Help me find the cause of random system restarts",
+  // "Analyze my desktop setup from this picture",
+  // "Tell me how to check if my power supply is working properly",
+];
+  // const suggestedActions = [
+  //   "What are the advantages of using Next.js?",
+  //   "Write code to demonstrate Dijkstra's algorithm",
+  //   "Help me write an essay about Silicon Valley",
+  //   "What is the weather in San Francisco?",
+  // ];
 
   return (
     <div
