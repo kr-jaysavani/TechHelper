@@ -184,6 +184,7 @@ export async function POST(request: Request) {
     let sysPrompt = systemPrompt({ selectedChatModel })
     const msgs = convertToModelMessages(uiMessages)
     const context = await rag_retrieve(msgs)
+    console.log("🚀 ~ POST ~ context:", context)
     sysPrompt = sysPrompt + `\n ${context}`
 
     const stream = createUIMessageStream({
