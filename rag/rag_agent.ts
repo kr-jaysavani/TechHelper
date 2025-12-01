@@ -1,55 +1,17 @@
-import { mistral } from "@ai-sdk/mistral";
-import { embed, generateText, ModelMessage, tool } from "ai";
-import { qdrant, collectionName } from "./qdrant_client";
+import { embed, generateText, ModelMessage } from "ai";
+import { qdrant } from "./qdrant_client";
 import { openai } from "@ai-sdk/openai";
 import { jina } from "jina-ai-provider";
 import dotenv from "dotenv"
 import { google } from "@ai-sdk/google";
+import { chunkTextWithOverlap, extractTextFromPDF, ingestChunk } from "./utils";
 
 dotenv.config()
 
-// export async function rag_retrieve(messages: ModelMessage[]) {
-
-//     let query = "";
-//     let size = messages.length;
-//     for(let i=size-1 ; i >=0 ; i--) {
-//         if( messages[i].role === "user" ) {
-//             const content = messages[i].content;
-//             if( typeof content === "string") {
-//                 query = content;
-//             }
-//             else if( Array.isArray(content) ) {
-//                 query += content.map((c) => {
-//                     if(c.type === "text")  return c.text;
-//                 }).join("\n")
-//             }
-//             break;
-//         }
-//     }
-//     console.log("🚀 ~ rag_retrieve ~ query:", query)
-
-//     const { embedding } = await embed({
-//         model: jina.textEmbeddingModel("jina-embeddings-v2-base-en"),
-//         value: query,
-//     })
-
-//     const hits = (await qdrant.search(collectionName, {
-//         vector: embedding,
-//         limit: 3,
-//     })).sort((a: any, b: any) => {
-//         return b.score - a.score;
-//     })
-
-//     const context = hits
-//         .map((h: any) => {
-//             const page = (h.payload?.text as any) ?? null;
-//             return (page && (typeof page === "string" ? page : page.text)) ?? "";
-//         })
-//         .filter(Boolean)
-//         .join("\n");
-
-//     return context;
-// }
+export interface Response { 
+    success: Boolean, 
+    message: string
+}
 
 export async function rag_retrieve(messages: ModelMessage[]) {
     // 1. Extract latest user query
@@ -130,6 +92,79 @@ export async function rag_retrieve(messages: ModelMessage[]) {
 }
 
 
+export async function delete_collection(collection_name: string) : Promise<Response>{
+
+    try {
+        if( !(await qdrant.collectionExists(collection_name)) ) 
+            return { 
+                success : false, 
+                message: "No such collection name exists..."
+            };
+
+        await qdrant.deleteCollection(collection_name);
+        return {
+            success: true,
+            message: `${collection_name} deleted successfully...`
+        }
+    } catch (error) {
+        console.error("Error: ", error);
+        return { 
+            success: false, 
+            message: "Something went wrong while deleting the collection..."
+        };
+    }
+}
+
+export async function embed_pdf(file: File, collection_name: string) : Promise<Response>{
+    try {
+        const collections = await qdrant.getCollections();
+        console.log("🚀 ~ embed_pdf ~ collections:", collections)
+        const exists = collections.collections.some(
+            (col) => col.name === collection_name
+        );
+    
+        if (!exists) {
+            console.log("Creating Qdrant collection:", collection_name);
+    
+            await qdrant.createCollection(collection_name, {
+                vectors: {
+                    size: 768,
+                    distance: "Cosine"
+                },
+            });
+        } else {
+            console.log("Using existing collection:", collection_name);
+        }
+    
+        const pdfText = await extractTextFromPDF(file);
+        const chunks = chunkTextWithOverlap(pdfText);
+        console.log(`Chunked into ${chunks.length} chunks.`);
+    
+        for( let i=0 ; i < chunks.length ; i++ ) {
+            await ingestChunk(chunks[i], i, collection_name);
+            console.warn(`Chunk ${i} ingested...`)
+        }
+        console.warn("PDF embedded and stored in qdrantDB successfully...");
+        return { 
+            success: true, 
+            message: `PDF embedded and stored in qdrantDB successfully with name ${collection_name}...`
+        };
+    } catch (error) {
+        console.error("Error: ", error);
+        return { 
+            success: false, 
+            message: "Something went wrong while deleting the collection..."
+        };
+    }
+}
+
+export async function get_collections() {
+    try {
+        return (await qdrant.getCollections()).collections;
+    } catch (error) {
+        console.error("Error: ", error)
+    }
+}
 
 export async function main(query: string) {
 

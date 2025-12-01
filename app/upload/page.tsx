@@ -3,24 +3,32 @@
 import { useState } from "react"
 import PdfList from "@/components/pdf-list"
 import PdfUploader from "@/components/pdf-uploader";
+import { delete_collection, embed_pdf } from "@/rag/rag_agent";
 
 export default function Home() {
   const [uploadedPdfs, setUploadedPdfs] = useState<Array<{ id: string; name: string; size: number; uploadedAt: Date }>>(
     [],
   )
 
-  const handlePdfUpload = (files: File[]) => {
-    const newPdfs = files.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      uploadedAt: new Date(),
-    }))
-    setUploadedPdfs((prev) => [...prev, ...newPdfs])
+  const handlePdfUpload = async(files: File[]) => {
+    const formData = new FormData();
+    formData.append("file", files[0]);
+    formData.append("collection_name", files[0].name.replace(".pdf",""));
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    console.log("Embed response:", data);
+    // setUploadedPdfs((prev) => [...prev, ...newPdfs])
   }
 
-  const handleDeletePdf = (id: string) => {
-    
+  const handleDeletePdf = async(id: string) => {
+    const collection = uploadedPdfs.filter((f) => f.id === id);
+    if(!collection || collection.length === 0 ) throw new Error("No such collection to delete.")
+    await delete_collection(collection[0].name)
     setUploadedPdfs((prev) => prev.filter((pdf) => pdf.id !== id))
   }
 
