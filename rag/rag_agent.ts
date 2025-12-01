@@ -4,6 +4,7 @@ import { qdrant, collectionName } from "./qdrant_client";
 import { openai } from "@ai-sdk/openai";
 import { jina } from "jina-ai-provider";
 import dotenv from "dotenv"
+import { google } from "@ai-sdk/google";
 
 dotenv.config()
 
@@ -52,44 +53,80 @@ dotenv.config()
 
 export async function rag_retrieve(messages: ModelMessage[]) {
     // 1. Extract latest user query
-    const userMsg = [...messages].reverse()
-        .find(m => m.role === "user");
-
-    let query = "";
-
-    if (typeof userMsg?.content === "string") {
-        query = userMsg.content;
-    } else if (Array.isArray(userMsg?.content)) {
-        query = userMsg.content
-            .filter(c => c.type === "text")
-            .map(c => c.text)
+    try {
+        const userMsg = [...messages].reverse()
+            .find(m => m.role === "user");
+    
+        let query = "";
+    
+        if (typeof userMsg?.content === "string") {
+            query = userMsg.content;
+        } else if (Array.isArray(userMsg?.content)) {
+            query = userMsg.content
+                .filter(c => c.type === "text")
+                .map(c => c.text)
+                .join("\n");
+        }
+    
+        query = query.trim();
+        console.log("🚀 ~ rag_retrieve ~ query:", query)
+    
+        const collections = (await qdrant.getCollections()).collections;
+    
+        const result = await generateText({
+            model: google("gemini-2.5-flash"),
+            prompt: `
+                You are provided with the list of collections and a user query.
+                Your task is to analyze the user query and then classify it into the appropriate collection and then return only that collection.
+                Collection names are precise, So It might possible that user query niche is not related to any of the collections, in that case just return empty string.
+    
+                For e.g, If the query is related to router and if there is some collection that is related to router ( for e.g router_manual or ....) return that collection name.
+                Collections: ${collections.map((c) => c.name)}
+                User query: ${query}
+            `
+        })
+    
+        let relevant_collection = "";
+        if (result.content && result.content[0]) {
+            const first = result.content[0] as any;
+            if (typeof first === "string") {
+                relevant_collection = first;
+            } else if (first.text) {
+                relevant_collection = String(first.text);
+            } else if (first.content && typeof first.content === "string") {
+                    relevant_collection = first.content;
+            }
+        }
+        
+        console.log("🚀 ~ rag_retrieve ~ relevant_collection:", relevant_collection)
+    
+        if( !relevant_collection || relevant_collection.length === 0 || !collections.some((c) => c.name === relevant_collection)) return "";
+    
+        // 2. Embed
+        const { embedding } = await embed({
+            model: jina.textEmbeddingModel("jina-embeddings-v2-base-en"),
+            value: query,
+        });
+    
+        // 3. Qdrant search with threshold
+        const hits = await qdrant.search(relevant_collection, {
+            vector: embedding,
+            limit: 3,
+            score_threshold: 0.75,
+            with_payload: true,
+        });
+    
+        // 4. Join context text
+        const context = hits
+            .map(h => h.payload?.text ?? "")
+            .filter(Boolean)
             .join("\n");
+    
+        return context;
+    } catch (error) {
+        console.error(`Something wen wrong while retrieving context...\n ${error}`);
+        return "";
     }
-
-    query = query.trim();
-    console.log("🚀 ~ rag_retrieve ~ query:", query)
-
-    // 2. Embed
-    const { embedding } = await embed({
-        model: jina.textEmbeddingModel("jina-embeddings-v2-base-en"),
-        value: query,
-    });
-
-    // 3. Qdrant search with threshold
-    const hits = await qdrant.search(collectionName, {
-        vector: embedding,
-        limit: 3,
-        score_threshold: 0.75,
-        with_payload: true,
-    });
-
-    // 4. Join context text
-    const context = hits
-        .map(h => h.payload?.text ?? "")
-        .filter(Boolean)
-        .join("\n");
-
-    return context;
 }
 
 
