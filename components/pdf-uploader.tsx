@@ -59,7 +59,7 @@ export default function PdfUploader({ onUpload }: PdfUploaderProps) {
         isDragging ? "border-primary bg-primary/5 scale-105" : "border-border bg-card hover:border-primary/50"
       }`}
     >
-      <input ref={inputRef} type="file" multiple accept=".pdf" onChange={handleInputChange} className="hidden" />
+      <input ref={inputRef} type="file" accept=".pdf" onChange={handleInputChange} className="hidden" />
 
       <div
         className="flex flex-col items-center justify-center cursor-pointer"
