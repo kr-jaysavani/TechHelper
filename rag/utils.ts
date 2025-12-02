@@ -1,9 +1,15 @@
 import fs from "fs"
 import { embed } from "ai";
 import { qdrant } from "./qdrant_client";
-import { getDocument, PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import { jina } from "jina-ai-provider"
-import { TextContent } from "pdfjs-dist/types/src/display/api";
+// import { PDFParse} from "pdf-parse";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+).toString();
+import type { PDFDocumentProxy, PDFPageProxy, TextContent } from "pdfjs-dist/types/src/display/api";
+
 
 export async function extractTextFromPDF(file: File): Promise<string> {
     // Read the PDF file into a Buffer, then convert to Uint8Array
@@ -14,7 +20,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     let fullText = '';
 
     try {
-        const loadingTask = getDocument({ data: data });
+        const loadingTask = pdfjsLib.getDocument({data, })
         pdfDocument = await loadingTask.promise;
 
         console.log(`Successfully loaded PDF with ${pdfDocument.numPages} pages.`);
@@ -30,8 +36,6 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 
             fullText += `\n${pageText}\n`;
         }
-        console.log("🚀 ~ extractTextFromPDF ~ fullText:", fullText)
-
         return fullText;
 
     } catch (error) {
@@ -41,7 +45,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     }
 }
 
-export function chunkTextWithOverlap(text: string, maxLines = 5, overlapLines = 2): string[] {
+export function chunkTextWithOverlap(text: string, maxLines = 3, overlapLines = 1): string[] {
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const chunks: string[] = [];
 

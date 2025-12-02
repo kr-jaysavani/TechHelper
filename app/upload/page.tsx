@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import PdfList from "@/components/pdf-list"
 import PdfUploader from "@/components/pdf-uploader";
 import { delete_collection, embed_pdf } from "@/rag/rag_agent";
@@ -20,13 +20,22 @@ export default function Home() {
       body: formData,
     });
 
+    const newPdfs = files.map((file) => ({
+      id: Math.random().toString(36).substr(2, 9),
+      name: file.name,
+      size: file.size,
+      uploadedAt: new Date(),
+    }))
+
     const data = await res.json();
     console.log("Embed response:", data);
-    // setUploadedPdfs((prev) => [...prev, ...newPdfs])
+    setUploadedPdfs((prev) => [...prev, ...newPdfs])
   }
 
   const handleDeletePdf = async(id: string) => {
+    
     const collection = uploadedPdfs.filter((f) => f.id === id);
+    const c_name = collection[0].name;
     if(!collection || collection.length === 0 ) throw new Error("No such collection to delete.")
     await delete_collection(collection[0].name)
     setUploadedPdfs((prev) => prev.filter((pdf) => pdf.id !== id))

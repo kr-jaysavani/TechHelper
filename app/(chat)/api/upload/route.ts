@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { embed_pdf } from "@/rag/rag_agent";
-
-export const runtime = "nodejs"; // Required if using file uploads
+import { embed_pdf, get_collections } from "@/rag/rag_agent";
 
 export async function POST(req: Request) {
     try {
@@ -30,4 +28,15 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(req: Request) {
+  
+}
+
+export async function GET(req: Request) {
+    const collections = await get_collections();
+    return NextResponse.json({
+      collections
+    });
 }
