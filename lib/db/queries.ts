@@ -31,6 +31,7 @@ import {
   type User,
   user,
   vote,
+  userFile,
 } from "./schema";
 import { generateHashedPassword } from "./utils";
 
@@ -588,6 +589,30 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to get stream ids by chat id"
+    );
+  }
+}
+
+export async function createUserFile({
+  userId,
+  fileUrl,
+  collectionName,
+}: {
+  userId: string;
+  fileUrl: string;
+  collectionName: string;
+}) {
+  try {
+    await db.insert(userFile).values({
+      userId,
+      fileUrl,
+      collectionName,
+      createdAt: new Date(),
+    });
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to save user file"
     );
   }
 }

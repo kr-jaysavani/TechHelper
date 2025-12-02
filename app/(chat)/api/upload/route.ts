@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { delete_collection, embed_pdf, get_collections } from "@/rag/rag_agent";
+import { createUserFile } from "@/lib/db/queries";
+import { getSession } from "next-auth/react";
+import { auth } from "@/app/(auth)/auth";
 
 export async function POST(req: Request) {
+
+  const session = await auth();
+    console.log("🚀 ~ POST ~ session:", session)
     try {
         const formData = await req.formData();
 
@@ -18,6 +24,43 @@ export async function POST(req: Request) {
 
     // Call your existing embed function
     const result = await embed_pdf(file, collection_name);
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, message: result.message || "Failed to embed PDF" },
+        { status: 500 }
+      );
+    }
+    else{
+      try {
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+      console.log("🚀 ~ POST ~ response:", response)
+
+      if (response.ok) {
+        const data = await response.json();
+        const { url, pathname, contentType } = data;
+        console.log("🚀 ~ POST ~ url:", url)
+
+        await createUserFile({
+          userId: session?.data?.user?.id || "",
+          fileUrl: url,
+          collectionName: collection_name,
+        })
+
+        // return {
+        //   url,
+        //   name: pathname,
+        //   contentType,
+        // };
+      }
+      const { error } = await response.json();
+      console.error("File Upload Error:", error);
+    } catch (_error) {
+      console.error("File Upload Error:", _error);
+    }
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

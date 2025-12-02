@@ -171,3 +171,25 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const userFile = pgTable(
+  "UserFile",
+  {
+    id: uuid("id").notNull().defaultRandom(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+    fileUrl: text("fileUrl").notNull(),
+    collectionName: varchar("collectionName", { length: 100 }).notNull(),
+    createdAt: timestamp("createdAt").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    userRef: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+    }),
+  })
+);
+
+export type UserFile = InferSelectModel<typeof userFile>;
