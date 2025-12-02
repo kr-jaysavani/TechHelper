@@ -4,12 +4,14 @@ import type React from "react"
 
 import { useRef, useState } from "react"
 import { Upload } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface PdfUploaderProps {
   onUpload: (files: File[]) => void
+  loading?: boolean
 }
 
-export default function PdfUploader({ onUpload }: PdfUploaderProps) {
+export default function PdfUploader({ onUpload,loading }: PdfUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -59,7 +61,7 @@ export default function PdfUploader({ onUpload }: PdfUploaderProps) {
         isDragging ? "border-primary bg-primary/5 scale-105" : "border-border bg-card hover:border-primary/50"
       }`}
     >
-      <input ref={inputRef} type="file" accept=".pdf" onChange={handleInputChange} className="hidden" />
+      <input ref={inputRef} type="file" accept=".pdf" onChange={handleInputChange} className="hidden" disabled={loading}/>
 
       <div
         className="flex flex-col items-center justify-center cursor-pointer"
@@ -72,9 +74,10 @@ export default function PdfUploader({ onUpload }: PdfUploaderProps) {
         <p className="text-muted-foreground text-sm mb-4">or click to select files from your computer</p>
         <button
           type="button"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity"
+          className={cn("px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium transition-opacity",loading ? "cursor-not-allowed opacity-50":"")}
+          disabled={loading}
         >
-          Browse Files
+          {loading ? "Uploading..." : "Browse Files"}
         </button>
       </div>
     </div>

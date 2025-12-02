@@ -2,16 +2,14 @@
 
 import { Trash2, FileText, Download } from "lucide-react"
 
-interface Pdf {
-  id: string
+interface collections {
   name: string
-  size: number
-  uploadedAt: Date
 }
 
 interface PdfListProps {
-  pdfs: Pdf[]
+  collections: collections[]
   onDelete: (id: string) => void
+  isFetchingCollections: boolean
 }
 
 export function formatBytes(bytes: number): string {
@@ -42,8 +40,20 @@ export function formatDate(date: Date): string {
 }
 
 
-export default function PdfList({ pdfs, onDelete }: PdfListProps) {
-  if (pdfs.length === 0) {
+export default function PdfList({ collections, onDelete,isFetchingCollections }: PdfListProps) {
+
+  if(isFetchingCollections){
+    return (
+      <div className="border border-dashed border-border rounded-lg p-12 text-center">
+        <div className="mb-4 flex justify-center">
+          <FileText className="w-12 h-12 text-muted-foreground/30 animate-pulse" />
+        </div>
+        <p className="text-muted-foreground">Loading PDFs...</p>
+      </div>
+    )
+  }
+
+  if (collections.length === 0) {
     return (
       <div className="border border-dashed border-border rounded-lg p-12 text-center">
         <div className="mb-4 flex justify-center">
@@ -56,27 +66,27 @@ export default function PdfList({ pdfs, onDelete }: PdfListProps) {
 
   return (
     <div className="space-y-2">
-      {pdfs.map((pdf) => (
+      {collections.map((collection:collections) => (
         <div
-          key={pdf.id}
+          key={collection.name}
           className="flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-primary/50 hover:bg-card/80 transition-all duration-200"
         >
           <div className="flex items-center gap-4 flex-1 min-w-0">
-            <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+            <div className="p-2 bg-primary/10 rounded-lg shrink-0">
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-foreground truncate">{pdf.name}</h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <h3 className="font-medium text-foreground truncate">{collection.name}</h3>
+              {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{formatBytes(pdf.size)}</span>
                 <span>•</span>
                 <span>{formatDate(pdf.uploadedAt)}</span>
-              </div>
+              </div> */}
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+          <div className="flex items-center gap-2 ml-4 shrink-0">
             {/* <button
               type="button"
               className="p-2 hover:bg-secondary rounded-lg transition-colors duration-200"
@@ -86,7 +96,7 @@ export default function PdfList({ pdfs, onDelete }: PdfListProps) {
             </button> */}
             <button
               type="button"
-              onClick={() => onDelete(pdf.id)}
+              onClick={() => onDelete(collection.name)}
               className="p-2 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
               title="Delete PDF"
             >

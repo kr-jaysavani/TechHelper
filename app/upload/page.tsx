@@ -6,39 +6,80 @@ import PdfUploader from "@/components/pdf-uploader";
 import { delete_collection, embed_pdf } from "@/rag/rag_agent";
 
 export default function Home() {
-  const [uploadedPdfs, setUploadedPdfs] = useState<Array<{ id: string; name: string; size: number; uploadedAt: Date }>>(
-    [],
-  )
+  // const [uploadedPdfs, setUploadedPdfs] = useState<Array<{ id: string; name: string; size: number; uploadedAt: Date }>>(
+  //   [],
+  // )
+  // const [idDisabled, setIdDisabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isFetchingCollections, setIsFetchingCollections] = useState(false);
+  const [collections, setCollections] = useState<{name:string}[]>([]);
+
+  const fetchCollections = async () => {
+    try {
+      setIsFetchingCollections(true);
+      const res = await fetch("/api/upload");
+      const {collections} = await res.json();
+      setCollections(collections);
+    } catch (error) {
+      console.error("Error fetching collections:", error);
+    }
+    finally {
+      setIsFetchingCollections(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCollections();
+  }, []);
 
   const handlePdfUpload = async(files: File[]) => {
-    const formData = new FormData();
+    setLoading(true); 
+   try {
+     const formData = new FormData();
     formData.append("file", files[0]);
     formData.append("collection_name", files[0].name.replace(".pdf",""));
 
     const res = await fetch("/api/upload", {
       method: "POST",
-      body: formData,
+      body: formData, 
     });
-
-    const newPdfs = files.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      uploadedAt: new Date(),
-    }))
+    
+    // const newPdfs = files.map((file) => ({
+    //   id: Math.random().toString(36).substr(2, 9),
+    //   name: file.name,
+    //   size: file.size,
+    //   uploadedAt: new Date(),
+    // }))
 
     const data = await res.json();
     console.log("Embed response:", data);
-    setUploadedPdfs((prev) => [...prev, ...newPdfs])
+   } catch (error) {
+      console.error("Error uploading PDF:", error);
+   }
+    finally {
+      setLoading(false);
+      fetchCollections();
+    }
   }
 
-  const handleDeletePdf = async(id: string) => {
-    
-    const collection = uploadedPdfs.filter((f) => f.id === id);
-    const c_name = collection[0].name;
-    if(!collection || collection.length === 0 ) throw new Error("No such collection to delete.")
-    await delete_collection(collection[0].name)
-    setUploadedPdfs((prev) => prev.filter((pdf) => pdf.id !== id))
+  const handleDeletePdf = async(name: string) => {
+    try {
+      const res = await fetch(`/api/upload`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ collection_name: name }),
+      });
+
+      if (res.ok) {
+        setCollections((prev) => prev.filter((col) => col.name !== name));
+      } else {
+        console.error("Failed to delete collection");
+      }
+    } catch (error) {
+      console.error("Error deleting collection:", error);
+    }
   }
 
   return (
@@ -62,7 +103,7 @@ export default function Home() {
               <h2 className="text-xl font-semibold mb-2">Upload Documents</h2>
               <p className="text-muted-foreground text-sm">Drag and drop your PDF files or click to browse</p>
             </div>
-            <PdfUploader onUpload={handlePdfUpload} />
+            <PdfUploader onUpload={handlePdfUpload} loading={loading}/>
           </section>
 
           {/* Files List Section */}
@@ -70,10 +111,10 @@ export default function Home() {
             <div>
               <h2 className="text-xl font-semibold mb-2">Uploaded Files</h2>
               <p className="text-muted-foreground text-sm">
-                {uploadedPdfs.length} {uploadedPdfs.length === 1 ? "file" : "files"} uploaded
+                {collections.length} {collections.length === 1 ? "file" : "files"} uploaded
               </p>
             </div>
-            <PdfList pdfs={uploadedPdfs} onDelete={handleDeletePdf} />
+            <PdfList collections={collections} onDelete={handleDeletePdf} isFetchingCollections={isFetchingCollections}/>
           </section>
         </div>
       </main>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { embed_pdf, get_collections } from "@/rag/rag_agent";
+import { delete_collection, embed_pdf, get_collections } from "@/rag/rag_agent";
 
 export async function POST(req: Request) {
     try {
@@ -31,7 +31,19 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  
+  const { collection_name } = await req.json();
+    const {success} = await delete_collection(collection_name);
+    if(success) {
+      return NextResponse.json(
+        { success: true, message: `Collection ${collection_name} deleted successfully` },
+        { status: 200 }
+      );
+    } else {
+      return NextResponse.json(
+        { success: false, message: `Failed to delete collection ${collection_name}` },
+        { status: 500 }
+      );
+    } 
 }
 
 export async function GET(req: Request) {
