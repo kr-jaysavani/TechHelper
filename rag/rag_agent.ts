@@ -165,13 +165,13 @@ export async function embed_pdf(file: File, collection_name: string): Promise<Re
         console.warn("PDF embedded and stored in qdrantDB successfully...");
         return {
             success: true,
-            message: `PDF embedded and stored in qdrantDB successfully with name ${collection_name}...`
+            message: `Embedding success...`
         };
     } catch (error) {
         console.error("Error: ", error);
         return {
             success: false,
-            message: "Something went wrong while deleting the collection..."
+            message: `Embedding failed...${error}`
         };
     }
 }

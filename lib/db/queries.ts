@@ -34,6 +34,7 @@ import {
   userFile,
 } from "./schema";
 import { generateHashedPassword } from "./utils";
+import type { updateUserFileStatus, UserFileStatus } from "../types";
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -602,18 +603,46 @@ export async function createUserFile({
   userId: string;
   fileUrl: string;
   collectionName: string;
-  status: "pending" | "success"
+  status: UserFileStatus
 }) {
   try {
-    await db.insert(userFile).values({
+    const [row] = await db.insert(userFile).values({
       userId,
       fileUrl,
       collectionName,
       createdAt: new Date(),
       status
-    });
+    }).returning();
     console.log(`Added to DB.`)
+    return row;
   } catch (_error) {
+    console.error(_error)
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to save user file"
+    );
+  }
+}
+
+export async function updateUserFileStatus({ id, status, errorMessage }: updateUserFileStatus) {
+  try {
+    const dbRes = await db.update(userFile).set({ status: status, errorMessage }).where(eq(userFile.id, id)).returning();
+    console.log("status updated to ", status);
+    return dbRes;
+  } catch (error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to save user file"
+    );
+  }
+}
+
+export async function deleteUserFile(collection_name: string) {
+  try {
+    const dbRes = await db.delete(userFile).where(eq(userFile.collectionName, collection_name)).returning();
+    console.log("deleted from userFile db.")
+    return dbRes;
+  } catch (error) {
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to save user file"

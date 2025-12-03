@@ -10,7 +10,7 @@ import {
   timestamp,
   uuid,
   varchar,
-  pgEnum
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import type { AppUsage } from "../usage";
 
@@ -172,7 +172,7 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
-export const fileStatusEnum = pgEnum("file_status", ["pending", "success"]);
+export const fileStatusEnum = pgEnum("file_status", ["pending", "success", "failed"]);
 
 export const userFile = pgTable(
   "UserFile",
@@ -184,7 +184,8 @@ export const userFile = pgTable(
     fileUrl: text("fileUrl").notNull(),
     collectionName: varchar("collectionName", { length: 100 }).notNull(),
     createdAt: timestamp("createdAt").notNull(),
-    status: fileStatusEnum("status").notNull().default("pending")
+    status: fileStatusEnum("status").notNull(),
+    errorMessage: text("errorMessage")
   },
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),

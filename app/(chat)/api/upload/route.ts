@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { delete_collection, embed_pdf, get_collections } from "@/rag/rag_agent";
-import { createUserFile } from "@/lib/db/queries";
+import { createUserFile, deleteUserFile, updateUserFileStatus } from "@/lib/db/queries";
 import { getSession } from "next-auth/react";
 import { auth } from "@/app/(auth)/auth";
 import { delete_from_vercel, upload_to_vercel } from "@/lib/vercel-utils";
@@ -35,25 +35,36 @@ export async function POST(req: Request) {
       )
     }
 
-    // Call your existing embed function
-    const result = await embed_pdf(file, collection_name);
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, message: result.message || "Failed to embed PDF" },
-        { status: 500 }
-      );
-    }
+    const dbFile = await createUserFile({
+      userId: session?.user?.id,
+      fileUrl: uploadedData.data?.url ?? "",
+      collectionName: collection_name,
+      status: "pending"
+    })
 
-    if (!uploadedData.alreadyUploaded) {
-      await createUserFile({
-        userId: session?.user?.id,
-        fileUrl: uploadedData.data?.url ?? "",
-        collectionName: collection_name,
-        status: uploadedData.success ? "success" : "pending"
-      })
-    }
+    const response = NextResponse.json(
+      { success: true, message: "File received. Embedding is in progress in background..." },
+      { status: 200 }
+    );
 
-    return NextResponse.json(result, { status: 200 });
+    (async () => {
+      let result;
+      try {
+        result = await embed_pdf(file, collection_name);
+
+        if (result.success) {
+          await updateUserFileStatus({ id: dbFile.id, status: "success" });
+        }
+        else {
+          await updateUserFileStatus({ id: dbFile.id, status: "failed", errorMessage: result.message });
+        }
+      } catch (error) {
+        console.error("Background embedding failed:", error);
+        await updateUserFileStatus({ id: dbFile.id, status: "failed", errorMessage: result?.message });
+      }
+    })();
+
+    return response;
   } catch (error) {
     console.error("PDF Upload API Error:", error);
 
@@ -70,6 +81,8 @@ export async function DELETE(req: Request) {
     const { success } = await delete_collection(collection_name);
     const res = await delete_from_vercel(collection_name + ".pdf")
     console.log("🚀 ~ DELETE ~ res :", res)
+    const dbRes = await deleteUserFile(collection_name);
+
     if (success) {
       return NextResponse.json(
         {

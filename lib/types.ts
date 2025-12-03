@@ -56,3 +56,10 @@ export type Attachment = {
   url: string;
   contentType: string;
 };
+
+export type UserFileStatus = "pending" | "success" | "failed"
+export type updateUserFileStatus = {
+  id: string;
+  status: UserFileStatus;
+  errorMessage?: string;
+}

@@ -9,12 +9,12 @@ export async function upload_to_vercel(file: Blob) {
         const fileBuffer = await file.arrayBuffer();
         const uploadedFiles = await list();
 
-        if (uploadedFiles.blobs.some((blob) => blob.pathname === filename)) {
+        const relevantFiles = uploadedFiles.blobs.filter((blob) => blob.pathname === filename);
+        if (relevantFiles && relevantFiles.length > 0) {
             return {
                 success: true,
-                alreadyUploaded: true,
                 message: "Already uploaded on vercel.",
-                data: undefined
+                data: relevantFiles[0]
             }
         }
         const data = await put(`${filename}`, fileBuffer, {
@@ -24,7 +24,6 @@ export async function upload_to_vercel(file: Blob) {
 
         return {
             success: true,
-            alreadyUploaded: false,
             message: `${filename} uploaded to vercel successfully.`,
             data
         }
