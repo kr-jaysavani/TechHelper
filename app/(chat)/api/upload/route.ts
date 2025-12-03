@@ -3,24 +3,37 @@ import { delete_collection, embed_pdf, get_collections } from "@/rag/rag_agent";
 import { createUserFile } from "@/lib/db/queries";
 import { getSession } from "next-auth/react";
 import { auth } from "@/app/(auth)/auth";
+import { delete_from_vercel, upload_to_vercel } from "@/lib/vercel-utils";
 
 export async function POST(req: Request) {
-
   const session = await auth();
-    console.log("🚀 ~ POST ~ session:", session)
-    try {
-        const formData = await req.formData();
+  console.log("🚀 ~ POST ~ session:", session);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-        const file = formData.get("file") as File | null;
-        console.log("🚀 ~ POST ~ file:", file?.name)
-        const collection_name = formData.get("collection_name") as string | null;
+  try {
+    const formData = await req.formData();
 
-        if (!file || !collection_name) {
-        return NextResponse.json(
-            { success: false, message: "Missing file or collection_name" },
-            { status: 400 }
-        );
-        }
+    const file = formData.get("file") as File | null;
+    console.log("🚀 ~ POST ~ file:", file?.name);
+    const collection_name = formData.get("collection_name") as string | null;
+
+    if (!file || !collection_name) {
+      return NextResponse.json(
+        { success: false, message: "Missing file or collection_name" },
+        { status: 400 }
+      );
+    }
+
+    const uploadedData = await upload_to_vercel(file);
+    console.log("🚀 ~ POST ~ uploadedData:", uploadedData.message)
+    if (!uploadedData || !uploadedData.success) {
+      return NextResponse.json(
+        { success: false, message: "Something went wrong while uploading file to vercel." },
+        { status: 500 }
+      )
+    }
 
     // Call your existing embed function
     const result = await embed_pdf(file, collection_name);
@@ -30,36 +43,14 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
-    else{
-      try {
-      const response = await fetch("/api/files/upload", {
-        method: "POST",
-        body: formData,
-      });
-      console.log("🚀 ~ POST ~ response:", response)
 
-      if (response.ok) {
-        const data = await response.json();
-        const { url, pathname, contentType } = data;
-        console.log("🚀 ~ POST ~ url:", url)
-
-        await createUserFile({
-          userId: session?.data?.user?.id || "",
-          fileUrl: url,
-          collectionName: collection_name,
-        })
-
-        // return {
-        //   url,
-        //   name: pathname,
-        //   contentType,
-        // };
-      }
-      const { error } = await response.json();
-      console.error("File Upload Error:", error);
-    } catch (_error) {
-      console.error("File Upload Error:", _error);
-    }
+    if (!uploadedData.alreadyUploaded) {
+      await createUserFile({
+        userId: session?.user?.id,
+        fileUrl: uploadedData.data?.url ?? "",
+        collectionName: collection_name,
+        status: uploadedData.success ? "success" : "pending"
+      })
     }
 
     return NextResponse.json(result, { status: 200 });
@@ -74,24 +65,43 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { collection_name } = await req.json();
-    const {success} = await delete_collection(collection_name);
-    if(success) {
+  try {
+    const { collection_name } = await req.json();
+    const { success } = await delete_collection(collection_name);
+    const res = await delete_from_vercel(collection_name + ".pdf")
+    console.log("🚀 ~ DELETE ~ res :", res)
+    if (success) {
       return NextResponse.json(
-        { success: true, message: `Collection ${collection_name} deleted successfully` },
+        {
+          success: true,
+          message: `Collection ${collection_name} deleted successfully`,
+        },
         { status: 200 }
       );
     } else {
       return NextResponse.json(
-        { success: false, message: `Failed to delete collection ${collection_name}` },
+        {
+          success: false,
+          message: `Failed to delete collection ${collection_name}`,
+        },
         { status: 500 }
       );
-    } 
+    }
+  } catch (error) {
+    console.log(`Error while deleting pdf ${error}`)
+    return NextResponse.json(
+      {
+        success: false,
+        message: `Failed to delete collection...`,
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: Request) {
-    const collections = await get_collections();
-    return NextResponse.json({
-      collections
-    });
+  const collections = await get_collections();
+  return NextResponse.json({
+    collections,
+  });
 }

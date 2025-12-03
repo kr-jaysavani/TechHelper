@@ -597,10 +597,12 @@ export async function createUserFile({
   userId,
   fileUrl,
   collectionName,
+  status
 }: {
   userId: string;
   fileUrl: string;
   collectionName: string;
+  status: "pending" | "success"
 }) {
   try {
     await db.insert(userFile).values({
@@ -608,7 +610,9 @@ export async function createUserFile({
       fileUrl,
       collectionName,
       createdAt: new Date(),
+      status
     });
+    console.log(`Added to DB.`)
   } catch (_error) {
     throw new ChatSDKError(
       "bad_request:database",
