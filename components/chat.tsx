@@ -121,6 +121,7 @@ export function Chat({
       }
     },
   });
+    console.log("🚀 ~ Chat ~ messages:", messages)
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
@@ -205,6 +206,7 @@ export function Chat({
         messages={messages}
         regenerate={regenerate}
         selectedModelId={currentModelId}
+
         selectedVisibilityType={visibilityType}
         sendMessage={sendMessage}
         setAttachments={setAttachments}
