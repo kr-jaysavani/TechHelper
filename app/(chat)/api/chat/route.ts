@@ -46,6 +46,8 @@ import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 import { google } from "@ai-sdk/google";
 import { webSearch } from "@/lib/ai/tools/web-search";
+import { imageClassify } from "@/lib/ai/tools/image_classify";
+import { rag_retrieve } from "@/rag/rag_agent";
 
 
 export const maxDuration = 60;
@@ -180,12 +182,34 @@ export async function POST(request: Request) {
 
     let finalMergedUsage: AppUsage | undefined;
 
+    let sysPrompt = systemPrompt({ selectedChatModel })
+    const msgs = convertToModelMessages(uiMessages)
+    const context = await rag_retrieve(msgs)
+    console.log("🚀 ~ POST ~ context:", context)
+
+     // Extract image URLs from user message
+    const imageUrls: string[] = [];
+    if (message?.role === 'user' && message?.parts) {
+      for (const part of message.parts) {
+        if (part.type === 'file' && 'url' in part && part.url) {
+          imageUrls.push(part.url);
+        }
+      }
+    }
+
+    if (imageUrls.length > 0) {
+      sysPrompt = `\n\nUser has attached the following image URL:\n${imageUrls[0]}` + sysPrompt + `\n ${context}`
+      // sysPrompt = sysPrompt + `\n\nUser has attached the following image(s):\n${imageUrls.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
+    }
+
+    sysPrompt = sysPrompt + `\n ${context}`
+
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: google("gemini-2.5-flash"),
           // model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: sysPrompt,
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
@@ -196,11 +220,14 @@ export async function POST(request: Request) {
                   // "createDocument",
                   // "updateDocument",
                   // "requestSuggestions",
-                  "webSearch",
+                  // "webSearch",
+                  "imageClassify"
+
                 ],
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: {
-            webSearch,
+            // webSearch,
+            imageClassify,
             getWeather,
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
