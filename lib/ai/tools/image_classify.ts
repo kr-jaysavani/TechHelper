@@ -172,9 +172,9 @@ export const imageClassify = tool({
 
       let url;
       if(process.env.IS_ROBOFLOW_LOCAL==="true"){
-        url = `http://localhost:8000/${input.workspaceName}/workflows/${input.workflowId}`;
+        url = `http://localhost:9001/infer/workflows/${input.workspaceName}/${input.workflowId}`;
       } else {
-        url= `https://detect.roboflow.com/${input.workspaceName}/workflows/${input.workflowId}`;
+        url= `https://detect.roboflow.com/infer/workflows/${input.workspaceName}/${input.workflowId}`;
       }
       
       const payload = {
