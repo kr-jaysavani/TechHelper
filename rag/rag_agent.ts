@@ -8,8 +8,8 @@ import { chunkTextWithOverlap, extractTextFromPDF, ingestChunk } from "./utils";
 
 dotenv.config()
 
-export interface Response { 
-    success: Boolean, 
+export interface Response {
+    success: Boolean,
     message: string
 }
 
@@ -18,9 +18,9 @@ export async function rag_retrieve(messages: ModelMessage[]) {
     try {
         const userMsg = [...messages].reverse()
             .find(m => m.role === "user");
-    
+
         let query = "";
-    
+
         if (typeof userMsg?.content === "string") {
             query = userMsg.content;
         } else if (Array.isArray(userMsg?.content)) {
@@ -29,12 +29,12 @@ export async function rag_retrieve(messages: ModelMessage[]) {
                 .map(c => c.text)
                 .join("\n");
         }
-    
+
         query = query.trim();
         console.log("🚀 ~ rag_retrieve ~ query:", query)
-    
+
         const collections = (await qdrant.getCollections()).collections;
-    
+
         const result = await generateText({
             model: google("gemini-2.5-flash"),
             prompt: `
@@ -47,7 +47,7 @@ export async function rag_retrieve(messages: ModelMessage[]) {
                 User query: ${query}
             `
         })
-    
+
         let relevant_collection = "";
         if (result.content && result.content[0]) {
             const first = result.content[0] as any;
@@ -56,20 +56,20 @@ export async function rag_retrieve(messages: ModelMessage[]) {
             } else if (first.text) {
                 relevant_collection = String(first.text);
             } else if (first.content && typeof first.content === "string") {
-                    relevant_collection = first.content;
+                relevant_collection = first.content;
             }
         }
-        
+
         console.log("🚀 ~ rag_retrieve ~ relevant_collection:", relevant_collection)
-    
-        if( !relevant_collection || relevant_collection.length === 0 || !collections.some((c) => c.name === relevant_collection)) return "";
-    
+
+        if (!relevant_collection || relevant_collection.length === 0 || !collections.some((c) => c.name === relevant_collection)) return "";
+
         // 2. Embed
         const { embedding } = await embed({
             model: jina.textEmbeddingModel("jina-embeddings-v2-base-en"),
             value: query,
         });
-    
+
         // 3. Qdrant search with threshold
         const hits = await qdrant.search(relevant_collection, {
             vector: embedding,
@@ -77,13 +77,31 @@ export async function rag_retrieve(messages: ModelMessage[]) {
             score_threshold: 0.75,
             with_payload: true,
         });
-    
+
+        const res = await qdrant.query(relevant_collection, {
+            prefetch: [
+                {
+                    query: {
+                        values: embedding,
+                    },
+                    using: 'sparse',
+                    limit: 5,
+                },
+                {
+                    query: embedding,
+                    using: 'dense',
+                    limit: 5
+                }
+            ]
+        })
+        console.log("🚀 ~ rag_retrieve ~ res:", JSON.stringify(res))
+
         // 4. Join context text
         const context = hits
             .map(h => h.payload?.text ?? "")
             .filter(Boolean)
             .join("\n");
-    
+
         return context;
     } catch (error) {
         console.error(`Something wen wrong while retrieving context...\n ${error}`);
@@ -92,12 +110,12 @@ export async function rag_retrieve(messages: ModelMessage[]) {
 }
 
 
-export async function delete_collection(collection_name: string) : Promise<Response>{
+export async function delete_collection(collection_name: string): Promise<Response> {
 
     try {
-        if( !(await qdrant.collectionExists(collection_name)) ) 
-            return { 
-                success : false, 
+        if (!(await qdrant.collectionExists(collection_name)))
+            return {
+                success: false,
                 message: "No such collection name exists..."
             };
 
@@ -108,24 +126,24 @@ export async function delete_collection(collection_name: string) : Promise<Respo
         }
     } catch (error) {
         console.error("Error: ", error);
-        return { 
-            success: false, 
+        return {
+            success: false,
             message: "Something went wrong while deleting the collection..."
         };
     }
 }
 
-export async function embed_pdf(file: File, collection_name: string) : Promise<Response>{
+export async function embed_pdf(file: File, collection_name: string): Promise<Response> {
     try {
         const collections = await qdrant.getCollections();
         console.log("🚀 ~ embed_pdf ~ collections:", collections)
         const exists = collections.collections.some(
             (col) => col.name === collection_name
         );
-    
+
         if (!exists) {
             console.log("Creating Qdrant collection:", collection_name);
-    
+
             await qdrant.createCollection(collection_name, {
                 vectors: {
                     size: 768,
@@ -135,25 +153,25 @@ export async function embed_pdf(file: File, collection_name: string) : Promise<R
         } else {
             console.log("Using existing collection:", collection_name);
         }
-    
+
         const pdfText = await extractTextFromPDF(file);
         const chunks = chunkTextWithOverlap(pdfText);
         console.log(`Chunked into ${chunks.length} chunks.`);
-    
-        for( let i=0 ; i < chunks.length ; i++ ) {
+
+        for (let i = 0; i < chunks.length; i++) {
             await ingestChunk(chunks[i], i, collection_name);
             console.warn(`Chunk ${i} ingested...`)
         }
         console.warn("PDF embedded and stored in qdrantDB successfully...");
-        return { 
-            success: true, 
-            message: `PDF embedded and stored in qdrantDB successfully with name ${collection_name}...`
+        return {
+            success: true,
+            message: `Embedding success...`
         };
     } catch (error) {
         console.error("Error: ", error);
-        return { 
-            success: false, 
-            message: "Something went wrong while deleting the collection..."
+        return {
+            success: false,
+            message: `Embedding failed...${error}`
         };
     }
 }

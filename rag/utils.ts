@@ -20,7 +20,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     let fullText = '';
 
     try {
-        const loadingTask = pdfjsLib.getDocument({data, })
+        const loadingTask = pdfjsLib.getDocument({ data, })
         pdfDocument = await loadingTask.promise;
 
         console.log(`Successfully loaded PDF with ${pdfDocument.numPages} pages.`);
@@ -60,7 +60,6 @@ export function chunkTextWithOverlap(text: string, maxLines = 3, overlapLines = 
 
         start = Math.max(0, end - overlapLines);
     }
-    console.log(chunks)
     return chunks;
 }
 
@@ -75,7 +74,7 @@ export async function ingestChunk(chunk: string, idx: number, collection_name: s
             {
                 id: idx,
                 vector: e.embedding,
-                payload: { text: chunk }
+                payload: { text: chunk, source: collection_name + '.pdf', chunk_index: idx }
             }
         ]
     });

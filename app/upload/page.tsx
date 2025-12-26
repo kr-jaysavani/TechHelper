@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import PdfList from "@/components/pdf-list"
 import PdfUploader from "@/components/pdf-uploader";
 import { delete_collection, embed_pdf } from "@/rag/rag_agent";
+import { toast } from "sonner";
+import { createUserFile } from "@/lib/db/queries";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
   // const [uploadedPdfs, setUploadedPdfs] = useState<Array<{ id: string; name: string; size: number; uploadedAt: Date }>>(
@@ -13,6 +16,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [isFetchingCollections, setIsFetchingCollections] = useState(false);
   const [collections, setCollections] = useState<{name:string}[]>([]);
+  const session = useSession();
+  console.log("🚀 ~ Home ~ session:", session)
 
   const fetchCollections = async () => {
     try {
@@ -52,6 +57,11 @@ export default function Home() {
     // }))
 
     const data = await res.json();
+    if(!data.success)
+    {
+      toast.error(data.message);
+    }
+
     console.log("Embed response:", data);
    } catch (error) {
       console.error("Error uploading PDF:", error);
