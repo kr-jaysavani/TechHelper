@@ -48,7 +48,8 @@ import { google } from "@ai-sdk/google";
 import { webSearch } from "@/lib/ai/tools/web-search";
 import { imageClassify } from "@/lib/ai/tools/image_classify";
 import { rag_retrieve } from "@/rag/rag_agent";
-
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export const maxDuration = 60;
 
@@ -88,6 +89,17 @@ export function getStreamContext() {
   }
 
   return globalStreamContext;
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
 }
 
 export async function POST(request: Request) {
