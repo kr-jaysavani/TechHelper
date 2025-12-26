@@ -91,6 +91,7 @@ import { z } from "zod";
 import sharp from "sharp";
 
 
+
 export const imageClassify = tool({
   description: "Classify and analyze images using Roboflow Workflows. Accepts base64 encoded images or image URLs.",
   inputSchema: z.object({
@@ -169,10 +170,15 @@ export const imageClassify = tool({
       //     imageData = imageData.split(',')[1];
       //   }
 
-      const url = `https://detect.roboflow.com/infer/workflows/learning-sx9ew/custom-workflow-2`;
-
+      let url;
+      if(process.env.IS_ROBOFLOW_LOCAL==="true"){
+        url = `http://localhost:8000/${input.workspaceName}/workflows/${input.workflowId}`;
+      } else {
+        url= `https://detect.roboflow.com/${input.workspaceName}/workflows/${input.workflowId}`;
+      }
+      
       const payload = {
-        api_key: "h9Ivd81V7NRWdbJl35za",
+        api_key:process.env.ROBOFLOW_API_KEY,
         inputs: {
           image: {
             type: "base64",
