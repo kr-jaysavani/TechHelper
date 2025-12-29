@@ -101,6 +101,8 @@ export const imageClassify = tool({
   }),
   execute: async (input) => {
     console.log("🚀 ~ input:", input)
+    const workspaceName="learning-sx9ew";
+    const workflowId = "custom-workflow-2"
     try {
       if (!process.env.ROBOFLOW_API_KEY) {
         return {
@@ -135,7 +137,6 @@ export const imageClassify = tool({
         .toBuffer();
 
       const base64Image = compressedBuffer.toString("base64");
-      console.log("🚀 ~ base64Image:", base64Image)
 
       const base64SizeKB = (base64Image.length * 0.75) / 1024;
       console.log("🚀 ~ base64SizeKB:", base64SizeKB)
@@ -172,9 +173,9 @@ export const imageClassify = tool({
 
       let url;
       if(process.env.IS_ROBOFLOW_LOCAL==="true"){
-        url = `http://localhost:9001/infer/workflows/${input.workspaceName}/${input.workflowId}`;
+        url = `http://localhost:9001/infer/workflows/${workspaceName}/${workflowId}`;
       } else {
-        url= `https://detect.roboflow.com/infer/workflows/${input.workspaceName}/${input.workflowId}`;
+        url= `https://detect.roboflow.com/infer/workflows/${workspaceName}/${workflowId}`;
       }
       
       const payload = {

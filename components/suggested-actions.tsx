@@ -16,12 +16,12 @@ type SuggestedActionsProps = {
 function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
 
   const suggestedActions = [
-    "Check why my PC is showing 'No Boot Device Found'",
-    "My phone is not charging—what should I check?",
-    "How do I reset my router safely?",
+    "How do I access TP-Link router admin panel?",
+    "Power light is on but no internet light",
+    "How do I reset my router?",
     "Diagnose why my Wi-Fi router keeps disconnecting",
-    "My monitor is not displaying anything — what do I do?",
     "Why is my internet speed slow?",
+    "What do the TP-Link router LED lights mean?",
   // "Help me fix a laptop that won’t turn on",
   // "Guide me through troubleshooting a computer that’s overheating",
   // "Explain the meaning of blinking LEDs on my router",
