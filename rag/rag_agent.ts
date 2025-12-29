@@ -78,24 +78,7 @@ export async function rag_retrieve(messages: ModelMessage[]) {
             with_payload: true,
         });
 
-        const res = await qdrant.query(relevant_collection, {
-            prefetch: [
-                {
-                    query: {
-                        values: embedding,
-                    },
-                    using: 'sparse',
-                    limit: 5,
-                },
-                {
-                    query: embedding,
-                    using: 'dense',
-                    limit: 5
-                }
-            ]
-        })
-        console.log("🚀 ~ rag_retrieve ~ res:", JSON.stringify(res))
-
+      
         // 4. Join context text
         const context = hits
             .map(h => h.payload?.text ?? "")
