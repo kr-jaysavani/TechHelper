@@ -17,10 +17,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const useSecureCookie = process.env.NEXTAUTH_URL
+    ? process.env.NEXTAUTH_URL.startsWith("https")
+    : !isDevelopmentEnvironment;
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
-    secureCookie: !isDevelopmentEnvironment,
+    secureCookie: useSecureCookie,
   });
 
   if (!token) {
