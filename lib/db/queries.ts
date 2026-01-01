@@ -75,10 +75,12 @@ export async function createGuestUser() {
       email: user.email,
     });
   } catch (_error) {
-    throw new ChatSDKError(
-      "bad_request:database",
-      "Failed to create guest user"
-    );
+    // Log the original error for debugging and include the message as the cause
+    // so the API returns more actionable information when running locally.
+    // eslint-disable-next-line no-console
+    console.error("createGuestUser error:", _error);
+    const errMsg = (_error as Error)?.message ?? String(_error);
+    throw new ChatSDKError("bad_request:database", `Failed to create guest user: ${errMsg}`);
   }
 }
 

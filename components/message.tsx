@@ -267,6 +267,59 @@ const PurePreviewMessage = ({
               );
             }
 
+            if (type === "tool-imageClassify") {
+              const { toolCallId, state } = part;
+
+              return (
+                <Tool defaultOpen={true} key={toolCallId}>
+                  <ToolHeader state={state} type="tool-imageClassify" />
+                  <ToolContent>
+                    {/* {state === "input-available" && (
+                      <ToolInput input={part.input} />
+                    )} */}
+                    {state === "output-available" && (
+                      <ToolOutput
+                        errorText={
+                          part.output && "error" in part.output
+                            ? String(part.output.error)
+                            : undefined
+                        }
+                        output={
+                          part.output && "error" in part.output ? (
+                            <div className="rounded border p-2 text-red-500">
+                              Error: {String(part.output.error)}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              {part.output?.drawnImageUrl ? (
+                                <img
+                                  alt="Detected image"
+                                  src={part.output.drawnImageUrl}
+                                  className="max-w-full rounded-lg"
+                                />
+                              ) : null}
+
+                              {/* <div className="text-sm text-muted-foreground">
+                                {part.output?.result
+                                  ? `Detected ${part.output.result.length} objects`
+                                  : "No detections"}
+                              </div> */}
+
+                              {/* {part.output?.result && (
+                                <pre className="max-w-full overflow-auto text-xs bg-muted p-2 rounded">
+                                  {JSON.stringify(part.output.result, null, 2)}
+                                </pre>
+                              )} */}
+                            </div>
+                          )
+                        }
+                      />
+                    )}
+                  </ToolContent>
+                </Tool>
+              );
+            }
+
             return null;
           })}
 
@@ -321,7 +374,7 @@ export const ThinkingMessage = () => {
       exit={{ opacity: 0, transition: { duration: 0.5 } }}
       initial={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-    >
+    >       
       <div className="flex items-start justify-start gap-3">
         <div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border">
           <SparklesIcon size={14} />
